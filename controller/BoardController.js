@@ -23,7 +23,7 @@ exports.formPage = async (req, res) => {
     const board = await BoardService.findByPk(boardId);
     if (!board) { return res.redirect('/board'); }
 
-    const user = await UserService.findByUserId(req.session.userId);
+    const user = await UserService.findByUserId(req.user.userId);
     if (user.id !== board.userId) { return res.redirect('/board'); }
 
     res.render('board/write.html', { board });
@@ -32,7 +32,7 @@ exports.formPage = async (req, res) => {
 exports.delete = async (req, res) => {
     const boardId = req.body.id;
     const board = await BoardService.findByPk(boardId);
-    const user = await UserService.findByUserId(req.session.userId);
+    const user = await UserService.findByUserId(req.user.userId);
 
     if (user.id !== board.userId) { return res.redirect('/board'); }
 
@@ -47,13 +47,13 @@ exports.viewPage = async (req, res) => {
 
     const user = await UserService.findByPk(board.userId);
     board.username = user.name;
-    board.isOwner = user.userId === req.session.userId;
+    board.isOwner = user.userId === req.user.userId;
 
     res.render('board/view.html', { board });
 };
 
 exports.save = async (req, res) => {
-    const userId = req.session.userId;
+    const userId = req.user.userId;
     const { title, contents } = req.body;
 
     const user = await UserService.findByUserId(userId);
@@ -78,7 +78,7 @@ exports.update = async (req, res) => {
     const board = await BoardService.findByPk(id);
     if (!board) { return res.redirect('/board'); }
 
-    const user = await UserService.findByUserId(req.session.userId);
+    const user = await UserService.findByUserId(req.user.userId);
     if (user.id !== board.userId) { return res.redirect('/board'); }
 
     await BoardService.updateById(id, title, contents);

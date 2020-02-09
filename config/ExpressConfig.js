@@ -2,6 +2,7 @@ const session = require('express-session');
 const LoginController = require('../controller/LoginController');
 const BoardController = require('../controller/BoardController');
 const fileUpload = require('express-fileupload');
+const passport = require('passport');
 
 async function init(express, port) {
     const app = express();
@@ -12,6 +13,9 @@ async function init(express, port) {
         // 세션이 세션 store에 저장되기 전에 uninitialized 된 상태로 만들어서 저장한다.
         saveUninitialized: true
     }));
+
+    app.use(passport.initialize({}));
+    app.use(passport.session({}));
 
     app.use(fileUpload({
         limits: { fileSize: 10 * 1024 * 1024 },
@@ -26,7 +30,7 @@ async function init(express, port) {
     // /board로 진입하는 모든 요청이 거쳐감 (middleware:  요청에 대한 응답 과정 중간에 껴서 어떠한 동작)
     app.use('/board', (req, res, next) => {
         // 로그인 안되있으면 로그인 페이지로 이동
-        if (!req.session || !req.session.userId) {
+        if (!req.isAuthenticated()) {
             return res.redirect('/');
         }
         next();
@@ -46,7 +50,18 @@ async function route(router) {
     router.get('/', LoginController.index);
     router.get('/join', LoginController.joinView);
     router.post('/join', LoginController.join);
-    router.post('/login', LoginController.login);
+    router.post('/login', (req, res, next) => {
+        passport.authenticate('local-strategy', (err, user, info) => {
+            if (err) { return next(err); }
+            if (!user) { return res.status(400).send(info.message); }
+
+            req.logIn(user, function(err) {
+                if (err) { return next(err); }
+                return res.sendStatus(200);
+            });
+        })(req, res, next);
+    });
+
     router.get('/logout', LoginController.logout);
 
     router.get('/board', BoardController.index);
